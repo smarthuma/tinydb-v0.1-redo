@@ -159,11 +159,17 @@ class FileStore:
 
     def _flush_free_head(self) -> None:
         """把内存中的 free_head 写回 header page body。"""
-        header_body = _FILE_META_STRUCT.pack(
+        page = self.read_page(0)
+        body = bytearray(page.body)
+        # 确保 body 足够容纳文件头元数据
+        if len(body) < _FILE_META_STRUCT.size:
+            body.extend(b"\x00" * (_FILE_META_STRUCT.size - len(body)))
+        # 仅更新前 16 字节（魔数 + page_size + free_head），保留后续数据
+        body[: _FILE_META_STRUCT.size] = _FILE_META_STRUCT.pack(
             FILE_HEADER_MAGIC, self.page_size, self._free_head
         )
-        raw = pack_header(0, PageType.HEADER, 0, len(header_body)) + _pad_body(
-            header_body, self.page_size
+        raw = pack_header(0, PageType.HEADER, 0, len(body)) + _pad_body(
+            body, self.page_size
         )
         os.pwrite(self._fd, raw, 0)
 

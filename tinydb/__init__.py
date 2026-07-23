@@ -1,6 +1,35 @@
-"""TinyDB — 用于学习数据库内部原理的嵌入式关系型 Python 数据库。
+"""TinyDB — 用于学习数据库内部原理的嵌入式关系型 Python 数据库。"""
 
-本包是当前 v0.1-redo 重置版的占位入口。公共 API 重导出在 Batch 9 填充。
-"""
+from __future__ import annotations
 
-__all__: list[str] = []
+from tinydb.database import Database
+from tinydb.errors import (
+    IntegerOverflow,
+    NotNullViolation,
+    PageCorrupt,
+    ParseError,
+    TableNotFound,
+    TinyDBError,
+    TransactionAlreadyActive,
+    TransactionLogCorrupt,
+    TypeMismatch,
+    UniqueViolation,
+    UnsafeDeleteWithoutWhere,
+)
+
+__version__ = "0.1.0"
+
+__all__: list[str] = [
+    "Database",
+    "TinyDBError",
+    "ParseError",
+    "TypeMismatch",
+    "UniqueViolation",
+    "NotNullViolation",
+    "TableNotFound",
+    "UnsafeDeleteWithoutWhere",
+    "IntegerOverflow",
+    "TransactionAlreadyActive",
+    "PageCorrupt",
+    "TransactionLogCorrupt",
+]
