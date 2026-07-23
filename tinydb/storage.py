@@ -169,7 +169,7 @@ class FileStore:
             FILE_HEADER_MAGIC, self.page_size, self._free_head
         )
         raw = pack_header(0, PageType.HEADER, 0, len(body)) + _pad_body(
-            body, self.page_size
+            bytes(body), self.page_size
         )
         os.pwrite(self._fd, raw, 0)
 
