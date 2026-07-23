@@ -222,11 +222,14 @@ def replay_wal(wal_path: str, store: _ReplayStore) -> None:
             if rec.kind is TX_COMMIT:
                 committed_tx.add(rec.tx_id)
             pos += header_size + length
-        # 重放 committed 的 MUTATE
+        # 重放 committed 的 MUTATE；undo 未提交事务的 MUTATE（恢复 before-image）
         for rec in records:
-            if rec.kind is MUTATE and rec.tx_id in committed_tx:
+            if rec.kind is MUTATE:
                 page = store.read_page(rec.page_id)
-                page.body = rec.after
+                if rec.tx_id in committed_tx:
+                    page.body = rec.after
+                else:
+                    page.body = rec.before
                 store.write_page(page)
     finally:
         os.close(fd)

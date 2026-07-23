@@ -222,11 +222,10 @@ def test_replay_runs_on_open_when_wal_exists(tmp_path) -> None:
     from tinydb.wal import Wal
 
     path = tmp_path / "test.db"
-    # 先创建 db + WAL
+    # 先创建 db + WAL（TxManager 签名：store, wal）
     store = FileStore.open(path)
     wal = Wal.open(str(path) + "-wal")
-    pool = BufferPool(store, capacity=8)
-    tx = TxManager(store, pool, wal)
+    tx = TxManager(store, wal)
     tx.begin()
     pid = alloc_page(store, PageType.TABLE)
     write_page(store, Page(page_id=pid, page_type=PageType.TABLE, lsn=1, body=b"committed"))

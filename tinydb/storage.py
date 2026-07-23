@@ -174,17 +174,10 @@ class FileStore:
             return
         # WAL 模块在 Batch 4 提供；延迟导入避免循环依赖
         try:
-            from tinydb.tx import TxManager  # type: ignore[attr-defined]
-            from tinydb.wal import Wal
+            from tinydb.wal import replay_wal
         except ImportError:
             return
-        wal = Wal.open(wal_path)
-        try:
-            pool = BufferPool(self, capacity=8)
-            tx = TxManager(self, pool, wal)
-            tx.replay()
-        finally:
-            wal.close()
+        replay_wal(wal_path, self)
 
     def __enter__(self) -> FileStore:
         return self
