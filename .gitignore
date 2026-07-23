@@ -1,0 +1,27 @@
+# 数据库文件
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+
+# 测试与覆盖率产物
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Python 字节码
+__pycache__/
+*.pyc
+
+# 虚拟环境
+.venv/
+
+# 构建产物
+*.egg-info/
+build/
+dist/
+
+# 编辑器 / OS
+.DS_Store
+.idea/
+.vscode/
