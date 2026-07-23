@@ -175,7 +175,7 @@ class FileStore:
         # WAL 模块在 Batch 4 提供；延迟导入避免循环依赖
         try:
             from tinydb.tx import TxManager  # type: ignore[attr-defined]
-            from tinydb.wal import Wal  # type: ignore[attr-defined]
+            from tinydb.wal import Wal
         except ImportError:
             return
         wal = Wal.open(wal_path)
