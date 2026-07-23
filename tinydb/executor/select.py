@@ -74,7 +74,7 @@ def exec_select(
             row_dict.pop("rowid", None)
             result.append(dict(row_dict))
         else:
-            result.append({"rowid": rowid} | _project_row(projections, row_dict, col_names))
+            result.append(_project_row(projections, row_dict, col_names))
     return result
 
 
@@ -152,20 +152,20 @@ def _eval_comparison(node: ast.BinaryOp, row: dict[str, object]) -> bool:
     if left is None or right is None:
         return False
     op = node.op
-    l = cast("_Comparable", left)
-    r = cast("_Comparable", right)
+    left_val = cast("_Comparable", left)
+    right_val = cast("_Comparable", right)
     if op == "=":
         return left == right
     if op == "<>":
         return left != right
     if op == "<":
-        return l < r
+        return left_val < right_val
     if op == "<=":
-        return l <= r
+        return left_val <= right_val
     if op == ">":
-        return l > r
+        return left_val > right_val
     if op == ">=":
-        return l >= r
+        return left_val >= right_val
     return False
 
 

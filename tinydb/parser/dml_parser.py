@@ -121,7 +121,8 @@ def _parse_projection(parser: Parser) -> object:
             return ast.SqlLiteral(value=f"{func}(*)", raw=f"{func}(*)")
         arg = parse_primary(parser)
         parser._expect_punct(")")
-        return ast.SqlLiteral(value=f"{func}({arg})", raw=f"{func}({arg})")
+        arg_name = arg.name if isinstance(arg, ast.Column) else str(arg)
+        return ast.SqlLiteral(value=f"{func}({arg_name})", raw=f"{func}({arg_name})")
     # 字面量
     if token.type in (TokenType.NUMBER, TokenType.STRING):
         return parse_primary(parser)

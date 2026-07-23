@@ -8,8 +8,6 @@ import subprocess
 import sys
 import time
 
-import pytest
-
 TINYDBN = [sys.executable, "-m", "tinydb.cli"]
 
 

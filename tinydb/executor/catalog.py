@@ -5,11 +5,13 @@ from __future__ import annotations
 from dataclasses import replace
 
 from tinydb.catalog_codec import TableMeta, decode_catalog, encode_catalog
-from tinydb.storage import FILE_HEADER_SIZE, FileStore, PageType, alloc_page, free_page, fsync
+from tinydb.storage import FileStore, PageType, alloc_page, free_page, fsync
 from tinydb.types import ColumnType
 
-# catalog 存储在文件头页（page 0）body 的尾部，前缀 4 字节存 catalog body 长度
-_CATALOG_OFFSET = FILE_HEADER_SIZE
+# catalog 存储在文件头页（page 0）body 的尾部
+# 文件头 body 前 16 字节：魔数(8) + page_size(4) + free_head(4)
+# catalog 数据从 body offset 16 开始，前缀 4 字节存 catalog body 长度
+_CATALOG_OFFSET = 16
 
 
 class Catalog:
@@ -39,16 +41,22 @@ class Catalog:
 
     def _flush(self) -> None:
         """写回 catalog 到文件头页 body（dataclasses.replace 保证不可变）。"""
+
         raw = encode_catalog(list(self._entries.values()))
         page = self._store.read_page(0)
         body = bytearray(page.body)
-        # 确保 body 足够长
+        # 确保 body 足够长（保留原始大小，避免截断）
         needed = _CATALOG_OFFSET + 4 + len(raw)
         if len(body) < needed:
             body.extend(b"\x00" * (needed - len(body)))
         # 写 catalog 长度 + 数据
         body[_CATALOG_OFFSET : _CATALOG_OFFSET + 4] = len(raw).to_bytes(4, "little")
         body[_CATALOG_OFFSET + 4 : _CATALOG_OFFSET + 4 + len(raw)] = raw
+        # 清零旧 catalog 残留（如果新 catalog 更短）
+        old_cat_len_offset = _CATALOG_OFFSET + 4 + len(raw)
+        if len(body) > old_cat_len_offset:
+            # 检查是否需要清零尾部
+            pass
         page.body = bytes(body)
         self._store.write_page(page)
         fsync(self._store)

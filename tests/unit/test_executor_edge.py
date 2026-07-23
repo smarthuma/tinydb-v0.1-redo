@@ -23,7 +23,7 @@ def test_update_multiple_rows(tmp_path) -> None:
         exe.execute("INSERT INTO t (name) VALUES ('a');")
         exe.execute("INSERT INTO t (name) VALUES ('b');")
         exe.execute("INSERT INTO t (name) VALUES ('a');")
-        count = exe.execute("UPDATE t SET name = 'X' WHERE name = 'a';")
+        exe.execute("UPDATE t SET name = 'X' WHERE name = 'a';")
         rows = exe.execute("SELECT * FROM t ORDER BY rowid;")
         assert len(rows) == 3
         assert rows[0]["name"] == "X"
@@ -142,7 +142,6 @@ def test_predicate_is_null(tmp_path) -> None:
 
 def test_eval_predicate_direct() -> None:
     """直接测试谓词求值。"""
-    from tinydb.executor.select import _eval_predicate
 
     row = {"a": 5, "b": "hello"}
     stmt = parse("SELECT * FROM t WHERE a = 5 AND b = 'hello';")
@@ -248,7 +247,7 @@ def test_limit_with_order_by(tmp_path) -> None:
         exe.execute("CREATE TABLE t (v TEXT);")
         for c in ["c", "a", "b"]:
             exe.execute(f"INSERT INTO t (v) VALUES ('{c}');")
-        rows = db.execute("SELECT * FROM t ORDER BY v LIMIT 2;") if False else exe.execute("SELECT * FROM t ORDER BY v LIMIT 2;")
+        rows = exe.execute("SELECT * FROM t ORDER BY v LIMIT 2;")
         assert [r["v"] for r in rows] == ["a", "b"]
     finally:
         exe.close()
@@ -407,7 +406,8 @@ def test_drop_table_if_not_exists(tmp_path) -> None:
     """DROP 不存在的表。"""
     exe = _make_executor(tmp_path)
     try:
-        with pytest.raises(Exception):
+        from tinydb.errors import TableNotFound
+        with pytest.raises(TableNotFound):
             exe.execute("DROP TABLE nonexistent;")
     finally:
         exe.close()
@@ -458,7 +458,7 @@ def test_tx_nested_begin_raises(tmp_path) -> None:
 
 def test_wal_truncate(tmp_path) -> None:
     """WAL truncate。"""
-    from tinydb.wal import Wal, TX_COMMIT
+    from tinydb.wal import TX_COMMIT, Wal
 
     wal_path = str(tmp_path / "test.db-wal")
     wal = Wal.open(wal_path)
@@ -477,8 +477,8 @@ def test_update_with_no_match(tmp_path) -> None:
     try:
         exe.execute("CREATE TABLE t (id INT, name TEXT);")
         exe.execute("INSERT INTO t (id, name) VALUES (1, 'a');")
-        count = exe.execute("UPDATE t SET name = 'X' WHERE id = 999;")
-        assert count == 0
+        result = exe.execute("UPDATE t SET name = 'X' WHERE id = 999;")
+        assert result == 0
     finally:
         exe.close()
 
@@ -489,8 +489,8 @@ def test_delete_with_no_match(tmp_path) -> None:
     try:
         exe.execute("CREATE TABLE t (id INT);")
         exe.execute("INSERT INTO t (id) VALUES (1);")
-        count = exe.execute("DELETE FROM t WHERE id = 999;")
-        assert count == 0
+        result = exe.execute("DELETE FROM t WHERE id = 999;")
+        assert result == 0
     finally:
         exe.close()
 
@@ -514,7 +514,8 @@ def test_database_execute_after_error(tmp_path) -> None:
     db = Database(tmp_path / "test.db")
     try:
         db.execute("CREATE TABLE t (id INT);")
-        with pytest.raises(Exception):
+        from tinydb.errors import ParseError
+        with pytest.raises(ParseError):
             db.execute("BAD SQL;")
         db.execute("INSERT INTO t (id) VALUES (1);")
         rows = db.execute("SELECT * FROM t;")
@@ -728,7 +729,7 @@ def test_storage_buffer_pool(tmp_path) -> None:
 
 def test_wal_fsync(tmp_path) -> None:
     """WAL fsync。"""
-    from tinydb.wal import Wal, TX_COMMIT
+    from tinydb.wal import TX_COMMIT, Wal
 
     wal_path = str(tmp_path / "test.db-wal")
     wal = Wal.open(wal_path)
@@ -792,8 +793,14 @@ def test_transaction_isolation(tmp_path) -> None:
 def test_types_encode_decode() -> None:
     """类型编解码边缘。"""
     from tinydb.types import (
-        ColumnType, decode_int, encode_int, encode_float, decode_float,
-        encode_text, decode_text, encode_bool, decode_bool,
+        decode_bool,
+        decode_float,
+        decode_int,
+        decode_text,
+        encode_bool,
+        encode_float,
+        encode_int,
+        encode_text,
     )
     # float round-trip
     assert decode_float(encode_float(2.71828)) == 2.71828

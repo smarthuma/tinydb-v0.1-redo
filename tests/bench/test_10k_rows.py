@@ -19,7 +19,7 @@ def test_1k_insert_and_query(tmp_path) -> None:
         start = time.time()
         for i in range(1, 51):
             db.execute(f"INSERT INTO t (id) VALUES ({i});")
-        insert_time = time.time() - start
+        time.time() - start  # 计时（不断言，仅观察）
         # 查询
         start = time.time()
         for i in range(1, 51):

@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import struct
-
 from typing import cast
 
 from tinydb.types import ColumnType, decode, encode

@@ -121,3 +121,50 @@ def test_database_has_all() -> None:
     from tinydb import database
 
     assert "Database" in database.__all__
+
+
+def test_execute_after_error(tmp_path) -> None:
+    """错误后数据库仍可用。"""
+    db = Database(tmp_path / "test.db")
+    try:
+        db.execute("CREATE TABLE t (id INT);")
+        from tinydb.errors import ParseError
+        with pytest.raises(ParseError):
+            db.execute("BAD SQL;")
+        # 仍可用
+        db.execute("INSERT INTO t (id) VALUES (1);")
+        rows = db.execute("SELECT * FROM t;")
+        assert len(rows) == 1
+    finally:
+        db.close()
+
+
+def test_ddl_returns_ok(tmp_path) -> None:
+    """DDL 返回 status ok。"""
+    db = Database(tmp_path / "test.db")
+    try:
+        result = db.execute("CREATE TABLE t (id INT);")
+        assert result == [{"status": "ok"}]
+        result = db.execute("DROP TABLE t;")
+        assert result == [{"status": "ok"}]
+    finally:
+        db.close()
+
+
+def test_update_returns_rows_affected(tmp_path) -> None:
+    """UPDATE 返回影响行数。"""
+    db = Database(tmp_path / "test.db")
+    try:
+        db.execute("CREATE TABLE t (id INT, name TEXT);")
+        db.execute("INSERT INTO t (id, name) VALUES (1, 'a');")
+        db.execute("INSERT INTO t (id, name) VALUES (2, 'a');")
+        result = db.execute("UPDATE t SET name = 'X' WHERE name = 'a';")
+        assert result == [{"rows_affected": 2}]
+    finally:
+        db.close()
+
+
+def test_init_failure_releases_resources(tmp_path) -> None:
+    """init 失败释放资源（无效路径）。"""
+    with pytest.raises((OSError, RuntimeError)):
+        Database("/nonexistent/path/to/db.db")
