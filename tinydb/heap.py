@@ -52,10 +52,11 @@ class Heap:
         count, body = self._read_count(page.body)
         rowid = count + 1
         row_data = self._encode_row_with_rowid(rowid, values)
+        row_len = len(row_data) + _DELETED_FLAG_SIZE
         new_body = (
             _COUNT_STRUCT.pack(count + 1)
             + body[_COUNT_STRUCT.size :]
-            + _ROW_LEN_STRUCT.pack(len(row_data))
+            + _ROW_LEN_STRUCT.pack(row_len)
             + _ALIVE
             + row_data
         )
@@ -74,10 +75,10 @@ class Heap:
                 body[offset : offset + _ROW_LEN_STRUCT.size]
             )[0]
             offset += _ROW_LEN_STRUCT.size
-            deleted = body[offset : offset + _DELETED_FLAG_SIZE]
-            offset += _DELETED_FLAG_SIZE
             row_bytes = body[offset : offset + row_len]
             offset += row_len
+            deleted = row_bytes[:_DELETED_FLAG_SIZE]
+            row_bytes = row_bytes[_DELETED_FLAG_SIZE:]
             if deleted == _ALIVE:
                 rowid = decode_rowid(row_bytes)
                 values = decode_row(row_bytes, self._schema)
@@ -95,12 +96,11 @@ class Heap:
                 body[offset : offset + _ROW_LEN_STRUCT.size]
             )[0]
             offset += _ROW_LEN_STRUCT.size
-            flag_offset = offset
-            offset += _DELETED_FLAG_SIZE
             row_bytes = bytes(body[offset : offset + row_len])
             offset += row_len
-            if decode_rowid(row_bytes) == rowid:
-                body[flag_offset] = 1
+            row_data = row_bytes[_DELETED_FLAG_SIZE:]
+            if decode_rowid(row_data) == rowid:
+                body[offset - row_len] = 1  # 标记删除
                 page.body = bytes(body)
                 self._store.write_page(page)
                 return
@@ -117,24 +117,31 @@ class Heap:
                 body[offset : offset + _ROW_LEN_STRUCT.size]
             )[0]
             offset += _ROW_LEN_STRUCT.size
-            flag_offset = offset
-            offset += _DELETED_FLAG_SIZE
-            row_start = offset
             row_bytes = bytes(body[offset : offset + row_len])
             offset += row_len
-            if decode_rowid(row_bytes) == rowid:
+            row_data = row_bytes[_DELETED_FLAG_SIZE:]
+            if decode_rowid(row_data) == rowid:
                 new_row_data = self._encode_row_with_rowid(rowid, values)
-                new_len = len(new_row_data) + _DELETED_FLAG_SIZE
-                if new_len <= row_len + _DELETED_FLAG_SIZE:
+                new_len = len(new_row_data)
+                if new_len <= len(row_data):
+                    # 原地更新：保持原 row_len 不变，不足部分补零
                     body[row_len_offset : row_len_offset + _ROW_LEN_STRUCT.size] = (
-                        _ROW_LEN_STRUCT.pack(len(new_row_data))
+                        _ROW_LEN_STRUCT.pack(len(row_bytes))
                     )
-                    body[row_start : row_start + len(new_row_data)] = new_row_data
+                    start = row_len_offset + _ROW_LEN_STRUCT.size
+                    body[start : start + _DELETED_FLAG_SIZE] = _ALIVE
+                    body[start + _DELETED_FLAG_SIZE :
+                         start + _DELETED_FLAG_SIZE + new_len] = new_row_data
+                    # 清零尾部残留
+                    pad_start = start + _DELETED_FLAG_SIZE + new_len
+                    pad_end = start + len(row_bytes)
+                    body[pad_start:pad_end] = b"\x00" * (pad_end - pad_start)
                 else:
                     # 溢出：标记删除 + 追加（保持相同 rowid）
-                    body[flag_offset] = 1
+                    start = row_len_offset + _ROW_LEN_STRUCT.size
+                    body[start] = 1
                     extra = (
-                        _ROW_LEN_STRUCT.pack(len(new_row_data))
+                        _ROW_LEN_STRUCT.pack(new_len + _DELETED_FLAG_SIZE)
                         + _ALIVE
                         + new_row_data
                     )

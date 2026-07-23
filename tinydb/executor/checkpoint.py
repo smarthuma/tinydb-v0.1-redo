@@ -1,6 +1,13 @@
-"""CHECKPOINT 执行：flush dirty pages + truncate WAL。
+"""CHECKPOINT 执行：flush dirty pages + truncate WAL（REQ-QE-011）。"""
 
-具体内容在 Batch 8 填充（REQ-TM-008 / REQ-QE-011）。
-"""
+from __future__ import annotations
 
-__all__: list[str] = []
+from tinydb.tx import TxManager
+
+
+def exec_checkpoint(tx: TxManager) -> None:
+    """执行 CHECKPOINT。"""
+    tx.checkpoint()
+
+
+__all__: list[str] = ["exec_checkpoint"]
