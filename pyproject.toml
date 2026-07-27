@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tinydb"
-version = "0.1.0"
+version = "0.2.0"
 description = "用于学习数据库内部原理的嵌入式关系型 Python 数据库（从零重置版）"
 requires-python = ">=3.10"
 readme = "README.md"

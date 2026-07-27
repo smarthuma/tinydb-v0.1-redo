@@ -253,7 +253,7 @@ def _run_repl(
     try:
         while True:
             try:
-                line = _read_line(cfg, pygments_warned, stdin)
+                line = _read_line(cfg, pygments_warned, stdin, bool(buffer))
             except (EOFError, KeyboardInterrupt):
                 print(file=stdout)
                 return
@@ -280,14 +280,22 @@ def _run_repl(
         _save_history(history_file)
 
 
-def _read_line(cfg: _ReplConfig, warned: list[bool], stdin: TextIO) -> str:
-    """读取一行输入。"""
+def _read_line(
+    cfg: _ReplConfig, warned: list[bool], stdin: TextIO, in_multiline: bool,
+) -> str:
+    """读取一行输入（带提示符）。"""
     _maybe_warn_pygments(sys.stderr, warned)
-    del cfg  # 当前不使用，保留扩展点
-    raw = stdin.readline()
-    if not raw:
-        raise EOFError
-    return raw.rstrip("\n")
+    prompt = "   ...> " if in_multiline else "tinydb> "
+    try:
+        if stdin.isatty():
+            return input(prompt)
+        # 非交互模式（管道/重定向）：按行读取
+        raw = stdin.readline()
+        if not raw:
+            raise EOFError
+        return raw.rstrip("\n")
+    except EOFError:
+        raise
 
 
 def _execute_one(db: Database, sql: str, stdout: TextIO, cfg: _ReplConfig | None = None) -> None:
