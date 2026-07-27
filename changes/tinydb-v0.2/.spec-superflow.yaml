@@ -2,7 +2,7 @@
 # Derived data. Always rebuildable from artifacts. Lost/corrupt → fall back to content-level detection.
 
 # === Core state ===
-state: executing
+state: closing
 workflow: full
 revision: 1
 
@@ -14,15 +14,15 @@ contract_hash: sha256:a4f47b8836f9f0c554411651594388e390bccdd482f594906a10a3a967
 execution_mode: sdd
 execution_plan_hash: sha256:ce9551a6be6021ec73002873b8cafc0bbeae82eb52f2a8ff3c9c2d5f80bd3e69
 execution_plan_revision: 1
-batches_completed: 0
-test_result: null
-spec_merged: false
+batches_completed: 13
+test_result: pass
+spec_merged: true
 
 # === Metadata ===
 change_name: tinydb-v0.2
-last_transition: '2026-07-27T06:11:16Z'
-last_transition_from: approved-for-build
-last_transition_to: executing
+last_transition: '2026-07-27T07:18:31Z'
+last_transition_from: executing
+last_transition_to: closing
 
 # === Decision points ===
 dp_0_decisions: change=tinydb-v0.2; scope=JOIN(inner+left,multi-table)+concurrency(conn-level
@@ -39,7 +39,7 @@ dp_4_result: sdd: plan revision 1; user-confirmed; user DP-4 selected sdd; W1/W2
 dp_4_timestamp: 2026-07-27T06:10:35.620Z
 dp_5_result: null
 dp_5_timestamp: null
-dp_6_result: null
-dp_6_timestamp: null
-dp_7_result: null
-dp_7_timestamp: null
+dp_6_result: pass
+dp_6_timestamp: '2026-07-27T07:18:31Z'
+dp_7_result: pass; v0.2 release — 304 passed 1 skipped; coverage 85.14% (fail_under 80); ruff clean; mypy strict clean; 12 specs merged; reviews w1-w4 all pass; worktrees merged to main
+dp_7_timestamp: '2026-07-27T07:18:31Z'

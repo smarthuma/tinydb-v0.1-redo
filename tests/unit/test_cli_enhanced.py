@@ -230,16 +230,16 @@ def test_dot_nullvalue_empty(tmp_path: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_dot_explain_not_available(tmp_path: str) -> None:
-    """.explain 在 EXPLAIN 未接入时优雅降级。"""
+def test_dot_explain_shows_plan(tmp_path: str) -> None:
+    """.explain 输出查询计划树（EXPLAIN 已接入真实 planner）。"""
     db = _db(tmp_path)
     cfg = _ReplConfig()
     buf = io.StringIO()
     err = io.StringIO()
     _handle_dot_command(".explain SELECT * FROM users", db, buf, err, cfg)
     combined = buf.getvalue() + err.getvalue()
-    # Either a plan tree or a graceful "not available" message
-    assert "not available" in combined.lower() or "explain" in combined.lower()
+    # 应包含计划节点类型（TableScan 或 IndexScan）
+    assert "scan" in combined.lower()
 
 
 def test_dot_explain_requires_sql(tmp_path: str) -> None:
