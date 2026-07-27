@@ -71,6 +71,29 @@ class TestJoinWithWhereOrderLimit:
         assert rows[1]["score"] == 85
 
 
+class TestEmptyTableJoin:
+    """空表 JOIN（REQ-JQ-012）。"""
+
+    def test_inner_join_empty_right(self, db: Database) -> None:
+        db.execute("CREATE TABLE empty_t (id INT)")
+        rows = db.execute(
+            "SELECT users.name FROM users JOIN empty_t ON users.id = empty_t.id",
+        )
+        assert rows == []
+
+
+class TestAmbiguousColumn:
+    """歧义列检测（REQ-JQ-004）。"""
+
+    def test_unqualified_ambiguous_raises(self, db: Database) -> None:
+        from tinydb.errors import AmbiguousColumn
+
+        with pytest.raises(AmbiguousColumn):
+            db.execute(
+                "SELECT id FROM users JOIN scores ON users.id = scores.user_id",
+            )
+
+
 class TestExplain:
     """EXPLAIN 执行（REQ-EP-005）。"""
 

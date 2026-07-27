@@ -90,7 +90,7 @@ def resolve_qualified_columns(
     返回 (解析后的投影列表, 表名 -> 列名元组映射)。
     歧义列（无限定且存在于多表）抛 AmbiguousColumn。
     """
-    from tinydb.errors import TinyDBError
+    from tinydb.errors import AmbiguousColumn
 
     # 收集所有表的列
     all_columns: dict[str, str] = {}  # col_name -> table_name
@@ -105,14 +105,14 @@ def resolve_qualified_columns(
                     ambiguous.add(col_name)
                 else:
                     all_columns[col_name] = tbl
-        except TinyDBError:
+        except Exception:
             pass
 
     resolved: list[object] = []
     for proj in projections:
         if isinstance(proj, ast.Column):
             if proj.name in ambiguous:
-                raise TinyDBError(f"ambiguous column: '{proj.name}'")
+                raise AmbiguousColumn(column=proj.name)
             resolved.append(proj)
         else:
             resolved.append(proj)

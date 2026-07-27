@@ -85,6 +85,14 @@ class TransactionLogCorrupt(TinyDBError):
         self.offset = offset
 
 
+class AmbiguousColumn(TinyDBError):
+    """列名存在于多表且无限定（REQ-JQ-004）。"""
+
+    def __init__(self, column: str) -> None:
+        super().__init__(column)
+        self.column = column
+
+
 def format(exc: BaseException) -> str:
     """把任意异常转成单行可读字符串（CLI/REPL 唯一出口）。"""
     match exc:
@@ -108,6 +116,8 @@ def format(exc: BaseException) -> str:
             return f"page corrupt: page_id={pid}"
         case TransactionLogCorrupt(offset=off):
             return f"transaction log corrupt: offset={off}"
+        case AmbiguousColumn(column=col):
+            return f"ambiguous column: '{col}'"
         case TinyDBError():
             return str(exc.args[0]) if exc.args else exc.__class__.__name__
         case _:
@@ -126,5 +136,6 @@ __all__: list[str] = [
     "TransactionAlreadyActive",
     "PageCorrupt",
     "TransactionLogCorrupt",
+    "AmbiguousColumn",
     "format",
 ]

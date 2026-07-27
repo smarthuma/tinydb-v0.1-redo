@@ -39,6 +39,13 @@ def exec_select(
         )
 
     # 多表 JOIN 路径
+    if catalog is not None:
+        from tinydb.executor.join import resolve_qualified_columns
+
+        projections, _ = resolve_qualified_columns(
+            list(projections), meta.name, joins, catalog,  # type: ignore[arg-type]
+        )
+
     return _exec_join_path(
         store, meta, projections, where, order_by, limit, offset, joins, catalog,
     )
