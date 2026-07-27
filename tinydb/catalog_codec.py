@@ -23,6 +23,9 @@ class TableMeta:
     name: str
     root_page_id: int
     schema: list[tuple[str, ColumnType]]
+    # 运行时字段（不持久化，供 planner 使用）
+    row_count: int = 0
+    indexes: tuple[tuple[str, int], ...] = ()
 
 
 def encode_catalog(entries: list[TableMeta]) -> bytes:

@@ -103,6 +103,7 @@ def parse_select(parser: Parser) -> ast.Select:
         projections=tuple(projections),
         table=table,
         joins=joins,
+        alias=alias,
         where=where,
         order_by=tuple(order_by_list),
         limit=limit,
@@ -157,8 +158,10 @@ def _parse_column_ref(parser: Parser) -> object:
 
 def _parse_order_item(parser: Parser) -> ast.OrderItem:
     """解析 ORDER BY 项。"""
+    from typing import Literal
+
     expr: object = _parse_column_ref(parser)
-    direction = "ASC"
+    direction: Literal["ASC", "DESC"] = "ASC"
     if parser._match_keyword("ASC"):
         direction = "ASC"
     elif parser._match_keyword("DESC"):

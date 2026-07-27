@@ -115,7 +115,7 @@ def _normalize_result(stmt: object, result: object) -> list[dict[str, object]]:
     """归一化执行结果。"""
     from tinydb.parser import ast
 
-    if isinstance(stmt, ast.Select):
+    if isinstance(stmt, (ast.Select, ast.Explain)):
         if isinstance(result, list):
             return result
         return []

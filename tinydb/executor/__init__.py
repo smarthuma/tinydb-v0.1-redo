@@ -72,10 +72,14 @@ class Executor:
                 stmt.limit,
                 stmt.offset,
                 project=not has_agg,
+                joins=tuple(stmt.joins),
+                catalog=self._catalog,
             )
             if has_agg:
                 rows = exec_aggregate(rows, list(stmt.projections), list(stmt.group_by))
             return rows
+        if isinstance(stmt, ast.Explain):
+            return exec_explain(self._planner, self._catalog, stmt)
         if isinstance(stmt, ast.Update):
             meta = self._catalog.get_table(stmt.table)
             return exec_update(
@@ -138,3 +142,26 @@ def _exec_tx_control(tx: TxManager, stmt: object) -> object:
     if isinstance(stmt, Rollback):
         return None
     return None
+
+
+def exec_explain(
+    planner: IndexPlanner, catalog: object, stmt: ast.Explain,
+) -> list[dict[str, object]]:
+    """执行 EXPLAIN：生成计划并返回结构化结果（REQ-EP-005）。"""
+    from tinydb.executor.plan_nodes import plan_to_dict
+
+    inner = stmt.statement
+    if isinstance(inner, ast.Select):
+        plan = planner.plan_select(
+            inner.table,
+            tuple(inner.joins),
+            inner.where,
+            tuple(inner.order_by),
+            inner.limit,
+            inner.offset,
+            tuple(inner.group_by),
+            catalog,  # type: ignore[arg-type]
+        )
+        return [plan_to_dict(plan)]
+    # 其他语句：返回占位
+    return [{"node": "Explain", "statement": type(inner).__name__}]

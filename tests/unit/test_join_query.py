@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-
 from tinydb.parser import parse
-from tinydb.parser.ast import Explain, JoinClause, JoinType, Select
+from tinydb.parser.ast import Explain, JoinType, Select
 
 
 class TestJoinParsing:

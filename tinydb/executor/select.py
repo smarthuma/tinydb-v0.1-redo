@@ -28,8 +28,33 @@ def exec_select(
     limit: int | None,
     offset: int | None,
     project: bool = True,
+    joins: tuple[ast.JoinClause, ...] = (),
+    catalog: object | None = None,
 ) -> list[dict[str, object]]:
-    """执行 SELECT。"""
+    """执行 SELECT。支持多表 JOIN（joins 非空时走 JOIN 路径）。"""
+    # 单表快速路径
+    if not joins:
+        return _exec_single_table(
+            store, meta, projections, where, order_by, limit, offset, project,
+        )
+
+    # 多表 JOIN 路径
+    return _exec_join_path(
+        store, meta, projections, where, order_by, limit, offset, joins, catalog,
+    )
+
+
+def _exec_single_table(
+    store: FileStore,
+    meta: TableMeta,
+    projections: list[object],
+    where: object,
+    order_by: Sequence[tuple[object, str]],
+    limit: int | None,
+    offset: int | None,
+    project: bool = True,
+) -> list[dict[str, object]]:
+    """单表 SELECT（原始路径，向后兼容）。"""
     heap = Heap(store=store, root_page_id=meta.root_page_id, schema=list(meta.schema))
     rows = heap.scan()
     heap.close()
@@ -88,6 +113,9 @@ def _project_row(
     for i, proj in enumerate(projections):
         if isinstance(proj, ast.Column):
             out[proj.name] = row_dict.get(proj.name)
+        elif isinstance(proj, ast.QualifiedColumn):
+            key = proj.name
+            out[key] = row_dict.get(f"{proj.table}.{proj.name}", row_dict.get(proj.name))
         elif isinstance(proj, ast.SqlLiteral):
             # 聚合占位或常量
             key = _proj_key(i, proj)
@@ -173,11 +201,79 @@ def _eval_expr(node: object, row: dict[str, object]) -> object:
     """求值表达式。"""
     if isinstance(node, ast.Column):
         return row.get(node.name)
+    if isinstance(node, ast.QualifiedColumn):
+        if node.table is not None:
+            return row.get(f"{node.table}.{node.name}", row.get(node.name))
+        return row.get(node.name)
     if isinstance(node, ast.SqlLiteral):
         return node.value
     if isinstance(node, ast.BinaryOp):
         return _eval_comparison(node, row)
     return None
+
+
+def _exec_join_path(
+    store: FileStore,
+    meta: TableMeta,
+    projections: list[object],
+    where: object,
+    order_by: Sequence[tuple[object, str]],
+    limit: int | None,
+    offset: int | None,
+    joins: tuple[object, ...],
+    catalog: object | None,
+) -> list[dict[str, object]]:
+    """多表 JOIN 执行路径。"""
+    if catalog is None:
+        raise RuntimeError("JOIN requires catalog")
+
+    # 扫描驱动表
+    heap = Heap(store=store, root_page_id=meta.root_page_id, schema=list(meta.schema))
+    left_rows = heap.scan()
+    heap.close()
+    left_dicts = [_row_to_dict(meta, values, rowid) for rowid, values in left_rows]
+
+    # 逐次 JOIN
+    result = left_dicts
+    for join in joins:
+        from tinydb.executor.join import (
+            check_join_type_compatibility,
+            exec_nested_loop_join,
+        )
+
+        if catalog is None:
+            raise RuntimeError("JOIN requires catalog")
+        check_join_type_compatibility(join, catalog)  # type: ignore[arg-type]
+        result = exec_nested_loop_join(store, catalog, result, join)  # type: ignore[arg-type]
+
+    # WHERE 过滤
+    if where is not None:
+        result = [row for row in result if _eval_predicate(where, row)]
+
+    # ORDER BY
+    if order_by:
+        sort_expr, direction = order_by[0]
+        reverse = direction == "DESC"
+        result.sort(
+            key=lambda r: cast("_Comparable", _eval_expr(sort_expr, r)),
+            reverse=reverse,
+        )
+
+    # LIMIT/OFFSET
+    if offset:
+        result = result[offset:]
+    if limit is not None:
+        result = result[:limit]
+
+    # 投影
+    has_star = any(isinstance(p, ast.Star) for p in projections)
+    if has_star:
+        for row in result:
+            row.pop("rowid", None)
+        return [dict(row) for row in result]
+
+    col_names = [name for name, _typ in meta.schema]
+    return [_project_row(projections, row, col_names) for row in result]
 
 
 __all__: list[str] = ["exec_select", "_eval_predicate"]

@@ -123,6 +123,7 @@ class Select:
     projections: tuple[object, ...]
     table: str
     joins: tuple[JoinClause, ...] = ()
+    alias: str | None = None
     where: object = None
     order_by: tuple[OrderItem, ...] = ()
     limit: int | None = None
