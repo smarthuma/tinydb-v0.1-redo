@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Literal
 
 
 # ----------------------------------------------------------------------
 # 表达式 / 谓词
 # ----------------------------------------------------------------------
+class JoinType(Enum):
+    """JOIN 类型。"""
+
+    INNER = "INNER"
+    LEFT = "LEFT"
+
+
 @dataclass(frozen=True)
 class Column:
     name: str
@@ -93,9 +101,28 @@ class OrderItem:
 
 
 @dataclass(frozen=True)
+class JoinClause:
+    """JOIN 子句。"""
+
+    kind: JoinType
+    table: str
+    alias: str | None
+    on: object
+
+
+@dataclass(frozen=True)
+class QualifiedColumn:
+    """带表限定的列引用。"""
+
+    table: str | None
+    name: str
+
+
+@dataclass(frozen=True)
 class Select:
     projections: tuple[object, ...]
     table: str
+    joins: tuple[JoinClause, ...] = ()
     where: object = None
     order_by: tuple[OrderItem, ...] = ()
     limit: int | None = None
@@ -136,6 +163,13 @@ class Checkpoint:
     pass
 
 
+@dataclass(frozen=True)
+class Explain:
+    """EXPLAIN 语句。"""
+
+    statement: object
+
+
 Statement = (
     CreateTable
     | DropTable
@@ -147,4 +181,5 @@ Statement = (
     | Commit
     | Rollback
     | Checkpoint
+    | Explain
 )

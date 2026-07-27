@@ -71,8 +71,13 @@ def parse_select(parser: Parser) -> ast.Select:
     while _match_punct(parser, ","):
         projections.append(_parse_projection(parser))
     table = ""
+    alias: str | None = None
+    joins: tuple[ast.JoinClause, ...] = ()
     if parser._match_keyword("FROM"):
         table = _parse_ident(parser)
+        from tinydb.parser.join_parser import _parse_optional_alias, parse_join_clauses
+        alias = _parse_optional_alias(parser)
+        joins = parse_join_clauses(parser)
     where = None
     if parser._match_keyword("WHERE"):
         where = parse_expression(parser)
@@ -97,6 +102,7 @@ def parse_select(parser: Parser) -> ast.Select:
     return ast.Select(
         projections=tuple(projections),
         table=table,
+        joins=joins,
         where=where,
         order_by=tuple(order_by_list),
         limit=limit,
@@ -126,9 +132,8 @@ def _parse_projection(parser: Parser) -> object:
     # 字面量
     if token.type in (TokenType.NUMBER, TokenType.STRING):
         return parse_primary(parser)
-    # 普通列
-    name = _parse_ident(parser)
-    expr: object = ast.Column(name=name)
+    # 普通列（可能限定）
+    expr = _parse_column_ref(parser)
     if parser._match_keyword("AS"):
         alias = _parse_ident(parser)
         expr = ast.Column(name=alias)
@@ -137,18 +142,28 @@ def _parse_projection(parser: Parser) -> object:
 
 def _parse_group_expr(parser: Parser) -> object:
     """解析 GROUP BY 表达式。"""
-    return ast.Column(name=_parse_ident(parser))
+    return _parse_column_ref(parser)
+
+
+def _parse_column_ref(parser: Parser) -> object:
+    """解析可能限定的列引用（column 或 table.column）。"""
+    name = _parse_ident(parser)
+    if parser._peek().type is TokenType.PUNCT and parser._peek().value == ".":
+        parser._advance()
+        col = _parse_ident(parser)
+        return ast.QualifiedColumn(table=name, name=col)
+    return ast.Column(name=name)
 
 
 def _parse_order_item(parser: Parser) -> ast.OrderItem:
     """解析 ORDER BY 项。"""
-    expr = ast.Column(name=_parse_ident(parser))
+    expr: object = _parse_column_ref(parser)
     direction = "ASC"
     if parser._match_keyword("ASC"):
         direction = "ASC"
     elif parser._match_keyword("DESC"):
         direction = "DESC"
-    return ast.OrderItem(expr=expr, direction=direction)  # type: ignore[arg-type]
+    return ast.OrderItem(expr=expr, direction=direction)
 
 
 def _parse_int_literal(parser: Parser) -> int:

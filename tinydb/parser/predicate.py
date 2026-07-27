@@ -112,6 +112,11 @@ def parse_primary(parser: Parser) -> object:
 
     if token.type is TokenType.IDENT:
         parser._advance()
+        # 限定列：table.column
+        if parser._peek().type is TokenType.PUNCT and parser._peek().value == ".":
+            parser._advance()  # 消耗 '.'
+            col_token = parser._expect(TokenType.IDENT)
+            return ast.QualifiedColumn(table=token.value, name=col_token.value)
         return ast.Column(name=token.value)
 
     if token.type is TokenType.PUNCT and token.value == "(":

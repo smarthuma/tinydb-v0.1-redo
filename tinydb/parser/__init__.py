@@ -75,6 +75,11 @@ class _Parser:
                 from tinydb.parser.ast import Checkpoint
 
                 return Checkpoint()
+            if keyword == "EXPLAIN":
+                self._advance()
+                from tinydb.parser.ast import Explain
+
+                return Explain(statement=self.parse_statement())
             statement = _tx_control.parse_tx_control(self)
             return statement  # type: ignore[return-value]
         raise ParseError(

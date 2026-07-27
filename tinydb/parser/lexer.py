@@ -15,6 +15,7 @@ KEYWORDS = frozenset(
         "ROLLBACK", "INT", "FLOAT", "TEXT", "BOOL", "INTEGER", "REAL",
         "VARCHAR", "BOOLEAN", "AVG", "SUM", "COUNT", "AS", "JOIN", "ON",
         "LEFT", "RIGHT", "INNER", "OUTER", "CROSS", "NULLS", "FIRST", "LAST",
+        "EXPLAIN",
     }
 )
 
@@ -46,7 +47,7 @@ class Token:
 Token.EOF = TokenType.EOF
 
 
-_SINGLE_CHAR_PUNCT = set("(),;*")
+_SINGLE_CHAR_PUNCT = set("(),;*.")
 _OPERATOR_PATTERNS = ("<>", "<=", ">=", "=", "<", ">")
 
 
