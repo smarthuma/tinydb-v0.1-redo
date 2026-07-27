@@ -2,7 +2,7 @@
 # Derived data. Always rebuildable from artifacts. Lost/corrupt → fall back to content-level detection.
 
 # === Core state ===
-state: executing
+state: closing
 workflow: full
 revision: 1
 
@@ -14,15 +14,15 @@ contract_hash: sha256:df6c63c0b29f1a1d459e61619c83b4d4242d46f4295ccb1fa738f53b29
 execution_mode: sdd
 execution_plan_hash: sha256:2275ea0ca301f2198985b95a062e3f2edf2087e19a912a9aba1971a90ce6e368
 execution_plan_revision: 1
-batches_completed: 0
-test_result: null
+batches_completed: 12
+test_result: pass
 spec_merged: false
 
 # === Metadata ===
 change_name: tinydb-v0.1-redo
-last_transition: 2026-07-22T08:53:39.194Z
-last_transition_from: approved-for-build
-last_transition_to: executing
+last_transition: 2026-07-24T03:22:44Z
+last_transition_from: executing
+last_transition_to: closing
 
 # === Decision points ===
 dp_0_decisions: change=tinydb-v0.1-redo; scope=proposal+33backlog all in; mode=full; comm=ask-per-decision; intent=redo tinydb v0.1 with full spec-superflow, code review, lint/mypy, and deferred design items from REWRITE-PENDING.md
@@ -39,7 +39,7 @@ dp_4_result: sdd: plan revision 1; user-confirmed; 用户 DP-3 已选 sdd；reco
 dp_4_timestamp: 2026-07-22T08:53:16.642Z
 dp_5_result: null
 dp_5_timestamp: null
-dp_6_result: null
-dp_6_timestamp: null
-dp_7_result: null
-dp_7_timestamp: null
+dp_6_result: pass
+dp_6_timestamp: 2026-07-23T08:47:27Z
+dp_7_result: pass; 12 batches complete; 227 passed 1 skipped; coverage 87.85% (fail_under 80); ruff clean; mypy strict clean; README/architecture/roadmap/bench all present; reviews w1-w8 534 lines total (each >=59 lines, closes REWRITE-PENDING 1.1/1.5); ssf CLI unavailable, yaml updated manually
+dp_7_timestamp: 2026-07-24T03:22:44Z

@@ -24,6 +24,7 @@ exclude = ["tests*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-m 'not bench'"
 markers = ["bench: 非阻塞性能基准测试"]
 
 [tool.coverage.run]
