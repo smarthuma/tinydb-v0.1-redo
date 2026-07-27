@@ -85,6 +85,14 @@ class TransactionLogCorrupt(TinyDBError):
         self.offset = offset
 
 
+class DatabaseBusy(TinyDBError):
+    """锁超时或数据库被其他连接占用（REQ-CC-004）。"""
+
+    def __init__(self, message: str = "database is locked") -> None:
+        super().__init__(message)
+        self.message = message
+
+
 class AmbiguousColumn(TinyDBError):
     """列名存在于多表且无限定（REQ-JQ-004）。"""
 
@@ -116,6 +124,8 @@ def format(exc: BaseException) -> str:
             return f"page corrupt: page_id={pid}"
         case TransactionLogCorrupt(offset=off):
             return f"transaction log corrupt: offset={off}"
+        case DatabaseBusy(message=msg):
+            return msg
         case AmbiguousColumn(column=col):
             return f"ambiguous column: '{col}'"
         case TinyDBError():
@@ -136,6 +146,7 @@ __all__: list[str] = [
     "TransactionAlreadyActive",
     "PageCorrupt",
     "TransactionLogCorrupt",
+    "DatabaseBusy",
     "AmbiguousColumn",
     "format",
 ]

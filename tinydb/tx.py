@@ -23,21 +23,28 @@ class _TxState:
 
 
 class TxManager:
-    """单连接事务状态机（REQ-TM-001..008）。"""
+    """事务状态机：支持多事务 ID 并发（REQ-TM-001..008, REQ-CC-006）。"""
 
-    def __init__(self, store: object, wal: Wal) -> None:
+    def __init__(
+        self,
+        store: object,
+        wal: Wal,
+        lock_manager: object | None = None,
+    ) -> None:
         self._store = store
         self._wal = wal
-        self._tx: _TxState | None = None
+        self._lock_manager = lock_manager
+        self._txs: dict[int, _TxState] = {}
         self._next_tx_id = 1
 
     def begin(self) -> int:
-        """开启事务，返回 tx_id（REQ-TM-001）。"""
-        if self._tx is not None and self._tx.active:
+        """开启事务，返回 tx_id（REQ-TM-001）。同连接重复 BEGIN 抛 TransactionAlreadyActive。"""
+        active = [t for t in self._txs.values() if t.active]
+        if active:
             raise TransactionAlreadyActive()
         tx_id = self._next_tx_id
         self._next_tx_id += 1
-        self._tx = _TxState(tx_id=tx_id)
+        self._txs[tx_id] = _TxState(tx_id=tx_id)
         return tx_id
 
     def commit(self, tx_id: int) -> None:
@@ -45,13 +52,13 @@ class TxManager:
         self._check_tx(tx_id)
         self._wal.append(TX_COMMIT, tx_id=tx_id)
         self._wal.fsync()
-        self._tx = None
+        del self._txs[tx_id]
 
     def rollback(self, tx_id: int) -> None:
         """回滚事务：写 ROLLBACK 标记（REQ-TM-003）。"""
         self._check_tx(tx_id)
         self._wal.append(TX_ROLLBACK, tx_id=tx_id)
-        self._tx = None
+        del self._txs[tx_id]
 
     def checkpoint(self) -> None:
         """刷脏页 + 截断 WAL（REQ-TM-008, REWRITE-PENDING 3.3）。"""
@@ -72,7 +79,8 @@ class TxManager:
         replay_wal(wal_path, self._store)  # type: ignore[arg-type]
 
     def _check_tx(self, tx_id: int) -> None:
-        if self._tx is None or not self._tx.active or self._tx.tx_id != tx_id:
+        tx = self._txs.get(tx_id)
+        if tx is None or not tx.active:
             raise TransactionAlreadyActive()
 
 

@@ -1,0 +1,45 @@
+# .spec-superflow.yaml — lightweight state machine
+# Derived data. Always rebuildable from artifacts. Lost/corrupt → fall back to content-level detection.
+
+# === Core state ===
+state: executing
+workflow: full
+revision: 1
+
+# === Hashes (fast staleness detection) ===
+artifacts_hash: sha256:62bcaac9bafabc2c8f1b5ef7920ed8012a966dc44dcd2a02dca94efec7600868
+contract_hash: sha256:a4f47b8836f9f0c554411651594388e390bccdd482f594906a10a3a96772e1a4
+
+# === Execution progress ===
+execution_mode: sdd
+execution_plan_hash: sha256:ce9551a6be6021ec73002873b8cafc0bbeae82eb52f2a8ff3c9c2d5f80bd3e69
+execution_plan_revision: 1
+batches_completed: 0
+test_result: null
+spec_merged: false
+
+# === Metadata ===
+change_name: tinydb-v0.2
+last_transition: '2026-07-27T06:11:16Z'
+last_transition_from: approved-for-build
+last_transition_to: executing
+
+# === Decision points ===
+dp_0_decisions: change=tinydb-v0.2; scope=JOIN(inner+left,multi-table)+concurrency(conn-level
+dp_0_result: confirmed
+dp_0_confirmed: true
+dp_0_timestamp: 2026-07-27 03:59:17+00:00
+dp_1_result: null
+dp_1_timestamp: null
+dp_2_result: 'approved: 4 capabilities (join-query/execution-plan/concurrency-control/cli-enhanced),
+dp_2_timestamp: '2026-07-27T06:05:37Z'
+dp_3_result: 'approved: 4 waves (W1/W2/W3 parallel, W4 serial integrate), 42 REQ +
+dp_3_timestamp: '2026-07-27T06:08:48Z'
+dp_4_result: sdd: plan revision 1; user-confirmed; user DP-4 selected sdd; W1/W2/W3 parallel via git worktree, W4 serial integrate
+dp_4_timestamp: 2026-07-27T06:10:35.620Z
+dp_5_result: null
+dp_5_timestamp: null
+dp_6_result: null
+dp_6_timestamp: null
+dp_7_result: null
+dp_7_timestamp: null
