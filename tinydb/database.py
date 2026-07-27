@@ -8,6 +8,7 @@ from pathlib import Path
 
 from tinydb.errors import TransactionAlreadyActive
 from tinydb.executor import Executor
+from tinydb.lock import FileLock, RWLock
 from tinydb.parser import parse
 from tinydb.storage import FileStore, fsync
 
@@ -21,16 +22,26 @@ class Database:
         self,
         path: str | Path,
         page_size: int = 4096,
+        wal_path: str | None = None,
+        lock_timeout: float = 5.0,
+        readonly: bool = False,
     ) -> None:
         self._path = Path(path)
         self._store: FileStore | None = None
         self._executor: Executor | None = None
         self._closed = False
-        self._init_resources(page_size)
+        self._lock_timeout = lock_timeout
+        self._readonly = readonly
+        self._rwlock = RWLock()
+        self._file_lock = FileLock(str(self._path))
+        self._init_resources(page_size, wal_path)
 
-    def _init_resources(self, page_size: int) -> None:
-        """初始化底层资源。"""
+    def _init_resources(self, page_size: int, wal_path: str | None) -> None:
+        """初始化底层资源并获取共享文件锁（允许多连接并发）。"""
         try:
+            # 默认获取共享锁，允许多个连接同时打开同一数据库。
+            # 排他锁仅在显式需要时获取（见 FileLock 直接测试）。
+            self._file_lock.shared(timeout=self._lock_timeout)
             self._store = FileStore.open(str(self._path), page_size=page_size)
             self._executor = Executor(self._store)
         except BaseException:
@@ -38,7 +49,11 @@ class Database:
             raise
 
     def _cleanup(self) -> None:
-        """释放资源。"""
+        """释放资源（锁 + 存储）。"""
+        try:
+            self._file_lock.close()
+        except Exception:
+            pass
         if self._store is not None:
             try:
                 self._store.close()
@@ -63,14 +78,14 @@ class Database:
         # 快照当前页状态用于回滚
         snapshot = self._snapshot_pages()
         try:
-            self._executor._tx.begin()
+            tx_id = self._executor._tx.begin()
         except TransactionAlreadyActive:
             raise
         try:
             yield self
-            self._executor._tx.commit(1)
+            self._executor._tx.commit(tx_id)
         except BaseException:
-            self._executor._tx.rollback(1)
+            self._executor._tx.rollback(tx_id)
             self._restore_pages(snapshot)
             raise
 

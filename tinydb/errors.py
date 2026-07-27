@@ -85,6 +85,14 @@ class TransactionLogCorrupt(TinyDBError):
         self.offset = offset
 
 
+class DatabaseBusy(TinyDBError):
+    """锁超时或数据库被其他连接占用（REQ-CC-004）。"""
+
+    def __init__(self, message: str = "database is locked") -> None:
+        super().__init__(message)
+        self.message = message
+
+
 def format(exc: BaseException) -> str:
     """把任意异常转成单行可读字符串（CLI/REPL 唯一出口）。"""
     match exc:
@@ -108,6 +116,8 @@ def format(exc: BaseException) -> str:
             return f"page corrupt: page_id={pid}"
         case TransactionLogCorrupt(offset=off):
             return f"transaction log corrupt: offset={off}"
+        case DatabaseBusy(message=msg):
+            return msg
         case TinyDBError():
             return str(exc.args[0]) if exc.args else exc.__class__.__name__
         case _:
@@ -126,5 +136,6 @@ __all__: list[str] = [
     "TransactionAlreadyActive",
     "PageCorrupt",
     "TransactionLogCorrupt",
+    "DatabaseBusy",
     "format",
 ]
