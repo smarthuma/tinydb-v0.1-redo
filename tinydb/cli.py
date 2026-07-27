@@ -253,7 +253,7 @@ def _run_repl(
     try:
         while True:
             try:
-                line = _read_line(cfg, pygments_warned, stdin, bool(buffer))
+                line = _read_line(cfg, pygments_warned, stdin, stdout, bool(buffer))
             except (EOFError, KeyboardInterrupt):
                 print(file=stdout)
                 return
@@ -281,21 +281,22 @@ def _run_repl(
 
 
 def _read_line(
-    cfg: _ReplConfig, warned: list[bool], stdin: TextIO, in_multiline: bool,
+    cfg: _ReplConfig, warned: list[bool], stdin: TextIO, stdout: TextIO,
+    in_multiline: bool,
 ) -> str:
-    """读取一行输入（带提示符）。"""
+    """读取一行输入（带提示符）。
+
+    始终从注入的 stdin 读取（而非 input() 的真实 OS stdin），
+    保证测试注入流和嵌入场景正常工作。
+    """
     _maybe_warn_pygments(sys.stderr, warned)
     prompt = "   ...> " if in_multiline else "tinydb> "
-    try:
-        if stdin.isatty():
-            return input(prompt)
-        # 非交互模式（管道/重定向）：按行读取
-        raw = stdin.readline()
-        if not raw:
-            raise EOFError
-        return raw.rstrip("\n")
-    except EOFError:
-        raise
+    # 将提示符写入 stdout（input() 会自动写，但我们手动读 stdin）
+    print(prompt, end="", file=stdout, flush=True)
+    raw = stdin.readline()
+    if not raw:
+        raise EOFError
+    return raw.rstrip("\n")
 
 
 def _execute_one(db: Database, sql: str, stdout: TextIO, cfg: _ReplConfig | None = None) -> None:

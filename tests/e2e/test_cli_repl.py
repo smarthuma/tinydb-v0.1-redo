@@ -23,7 +23,7 @@ def test_version_exits_zero() -> None:
         TINYDBN + ["--version"], capture_output=True, text=True,
     )
     assert result.returncode == 0
-    assert "0.1.0" in result.stdout
+    assert "0.2.0" in result.stdout
 
 
 def test_ascii_table_rendering(tmp_path) -> None:

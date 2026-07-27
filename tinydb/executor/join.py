@@ -56,7 +56,15 @@ def exec_hash_join(
     left_rows: list[dict[str, object]],
     join: ast.JoinClause,
 ) -> list[dict[str, object]]:
-    """哈希连接：对小表构建哈希表，大表探测。"""
+    """哈希连接（仅 INNER）：对小表构建哈希表，大表探测。
+
+    NOTE: 不支持 LEFT JOIN（会丢弃无匹配的左行）。
+    对 LEFT JOIN 请使用 exec_nested_loop_join。
+    """
+    if join.kind == ast.JoinType.LEFT:
+        # LEFT JOIN 回退到 NLJ 以保留无匹配左行
+        return exec_nested_loop_join(store, catalog, left_rows, join)
+
     right_table = _resolve_table_name(join)
     right_meta = catalog.get_table(right_table)
     right_rows = _scan_table(store, right_meta)
